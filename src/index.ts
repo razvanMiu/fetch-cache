@@ -30,10 +30,39 @@ export async function getRedis(): Promise<
   return redis;
 }
 
+export async function revalidateTags(tags: string[]): Promise<string | null> {
+  const redis = await getRedis();
+  try {
+    const cachedTags = JSON.parse(await redis.get("tags")) || {};
+    for (const tag of tags) {
+      Object.keys(cachedTags[tag] || {}).forEach(async (key) => {
+        await redis.del(key);
+      });
+      delete cachedTags[tag];
+      await redis.set("tags", JSON.stringify(cachedTags));
+      await redis.persist("tags");
+    }
+    return null;
+  } catch {
+    return `Failed to revalidate tags ${tags.join(", ")}`;
+  }
+}
+
+export async function revalidateAll(): Promise<string | null> {
+  const redis = await getRedis();
+  try {
+    await redis.flushAll();
+    return null;
+  } catch {
+    return "Failed to revalidate all";
+  }
+}
+
 export default async function fetch(
   url: URL | RequestInfo,
   init?: RequestInit
 ): Promise<Response> {
+  console.log("======> Fetching");
   const redis = await getRedis();
   const headers = init?.headers || {};
   const key = hash({ url, ...(init || {}) });
@@ -68,32 +97,4 @@ export default async function fetch(
   }
 
   return response;
-}
-
-export async function revalidateTags(tags: string[]): Promise<string | null> {
-  const redis = await getRedis();
-  try {
-    const cachedTags = JSON.parse(await redis.get("tags")) || {};
-    for (const tag of tags) {
-      Object.keys(cachedTags[tag] || {}).forEach(async (key) => {
-        await redis.del(key);
-      });
-      delete cachedTags[tag];
-      await redis.set("tags", JSON.stringify(cachedTags));
-      await redis.persist("tags");
-    }
-    return null;
-  } catch {
-    return `Failed to revalidate tags ${tags.join(", ")}`;
-  }
-}
-
-export async function revalidateAll(): Promise<string | null> {
-  const redis = await getRedis();
-  try {
-    await redis.flushAll();
-    return null;
-  } catch {
-    return "Failed to revalidate all";
-  }
 }
