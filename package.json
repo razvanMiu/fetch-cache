@@ -3,8 +3,8 @@
   "type": "module",
   "version": "0.1.0",
   "exports": {
-    ".": "./src/index.ts",
-    "./astro": "./src/astro.ts"
+    ".": "./index.ts",
+    "./astro": "./astro.ts"
   },
   "dependencies": {
     "node-fetch": "^3.3.2",
