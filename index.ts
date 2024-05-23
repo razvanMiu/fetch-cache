@@ -1,131 +1,99 @@
+import type { RequestInfo, RequestInit } from "node-fetch";
+import type {
+  RedisClientType,
+  RedisModules,
+  RedisFunctions,
+  RedisScripts,
+  RedisClientOptions,
+} from "redis";
 import nodeFetch, { Response } from "node-fetch";
+import { createClient } from "redis";
+import hash from "object-hash";
 
 import { CACHE_TTL } from "./constants";
 
-let cache;
+export let redisConfig: RedisClientOptions;
+export let redis: RedisClientType<RedisModules, RedisFunctions, RedisScripts>;
 
-class MemoryCache {
-  #cache: Record<
-    string,
-    {
-      value: any;
-      tags: string[];
-      ttl: number;
-      timeout?: NodeJS.Timeout;
-    }
-  > = {};
-  #tags: Record<string, Record<string, number>> = {};
-
-  get tags() {
-    return this.tags;
-  }
-
-  get(key: string) {
-    const cache = this.#cache[key];
-    if (!cache) return null;
-    const { timeout, ttl, value } = cache;
-    clearTimeout(timeout);
-    this.#cache[key].timeout = setTimeout(() => {
-      this.delete(key);
-    }, ttl);
-    return value;
-  }
-
-  set(key: string, value: any, tags: string[], ttl: number = CACHE_TTL) {
-    this.#cache[key] = {
-      value,
-      tags,
-      ttl,
-      timeout: setTimeout(() => {
-        this.delete(key);
-      }, ttl),
-    };
-    tags?.forEach((tag) => {
-      if (!this.#tags[tag]) {
-        this.#tags[tag] = {
-          [key]: 0,
-        };
-      }
-      this.#tags[tag][key]++;
-    });
-  }
-
-  delete(key: string) {
-    const cache = this.#cache[key];
-    if (!cache) return;
-    const { timeout, tags } = cache;
-    clearTimeout(timeout);
-    delete this.#cache[key];
-    tags?.forEach((tag) => {
-      if (this.#tags[tag][key] === 1) {
-        delete this.#tags[tag][key];
-      } else {
-        this.#tags[tag][key]--;
-      }
-      if (Object.keys(this.#tags[tag]).length === 0) {
-        delete this.#tags[tag];
-      }
-    });
-  }
-
-  reset() {
-    Object.entries(this.#cache).forEach(([, cache]) => {
-      clearTimeout(cache.timeout);
-    });
-    this.#cache = {};
-    this.#tags = {};
-  }
-
-  log() {
-    console.log(this.#cache, this.#tags);
-  }
+export async function setRedisClientConfig(config?: RedisClientOptions) {
+  redisConfig = config;
 }
 
-function getCache() {
-  if (!cache) {
-    cache = new MemoryCache();
+export async function getRedis(): Promise<
+  RedisClientType<RedisModules, RedisFunctions, RedisScripts>
+> {
+  if (!redis) {
+    redis = await createClient(redisConfig)
+      .on("error", (err) => console.log("Redis Client Error", err))
+      .connect();
   }
-  return cache;
-}
-
-export function revalidateTags(tags: string[]) {
-  const cache = getCache();
-  tags.forEach((tag) => {
-    Object.keys(cache.tags[tag]).forEach((key) => {
-      cache.delete(key);
-    });
-  });
+  return redis;
 }
 
 export default async function fetch(
   url: URL | RequestInfo,
   init?: RequestInit
 ): Promise<Response> {
-  const cache = getCache();
-  const key = url;
+  const redis = await getRedis();
+  const headers = init?.headers || {};
+  const key = hash({ url, ...(init || {}) });
 
-  console.log("HERE", init);
+  const cachedResult = await redis.get(key);
 
-  // return new Response(JSON.stringify({}));
-
-  cache.log();
-
-  if (cache.get(key)) {
-    return new Response(JSON.stringify(cache.get(key)));
+  if (cachedResult) {
+    return new Response(JSON.stringify(cachedResult));
   }
 
-  // @ts-ignore
-  const response = await nodeFetch(url, init);
+  const response = await nodeFetch(url as URL, init);
   const cachedResponse = response.clone();
 
   if (!response.ok) return response;
-
   try {
-    // @ts-ignore
-    cache.set(key, await cachedResponse.json(), init.tags || [], CACHE_TTL);
-  } catch (e) {
-    console.error("Failed to cache response");
+    const tags = init?.tags || [];
+    const cachedTags = JSON.parse(await redis.get("tags")) || {};
+    const result = JSON.stringify(await cachedResponse.json());
+    for (const tag of tags) {
+      if (!cachedTags[tag]) {
+        cachedTags[tag] = {};
+      }
+      cachedTags[tag][key] = true;
+    }
+    await redis.set(key, result, {
+      PX: CACHE_TTL,
+    });
+    await redis.set("tags", JSON.stringify(cachedTags));
+    await redis.persist("tags");
+  } catch {
+    console.error(`Failed to cache response for ${url}`);
   }
 
   return response;
+}
+
+export async function revalidateTags(tags: string[]): Promise<string | null> {
+  const redis = await getRedis();
+  try {
+    const cachedTags = JSON.parse(await redis.get("tags")) || {};
+    for (const tag of tags) {
+      Object.keys(cachedTags[tag] || {}).forEach(async (key) => {
+        await redis.del(key);
+      });
+      delete cachedTags[tag];
+      await redis.set("tags", JSON.stringify(cachedTags));
+      await redis.persist("tags");
+    }
+    return null;
+  } catch {
+    return `Failed to revalidate tags ${tags.join(", ")}`;
+  }
+}
+
+export async function revalidateAll(): Promise<string | null> {
+  const redis = await getRedis();
+  try {
+    await redis.flushAll();
+    return null;
+  } catch {
+    return "Failed to revalidate all";
+  }
 }
