@@ -1,4 +1,3 @@
-import type { RequestInfo, RequestInit } from "node-fetch";
 import type {
   RedisClientType,
   RedisModules,
@@ -6,11 +5,10 @@ import type {
   RedisScripts,
   RedisClientOptions,
 } from "redis";
-import nodeFetch, { Response } from "node-fetch";
 import { createClient } from "redis";
 import hash from "object-hash";
 
-import { CACHE_TTL } from "./constants";
+import { CACHE_TTL } from "fetch-cache/constants";
 
 export let redisConfig: RedisClientOptions;
 export let redis: RedisClientType<RedisModules, RedisFunctions, RedisScripts>;
@@ -58,22 +56,31 @@ export async function revalidateAll(): Promise<string | null> {
   }
 }
 
-export default async function fetch(
+export default async function api(
   url: URL | RequestInfo,
-  init?: RequestInit
+  init?: RequestInit & { tags?: string[] }
 ): Promise<Response> {
-  console.log("======> Fetching");
   const redis = await getRedis();
   const headers = init?.headers || {};
   const key = hash({ url, ...(init || {}) });
+  console.log("======> Fetching", key);
 
-  const cachedResult = await redis.get(key);
+  let cachedResult: any;
+  try {
+    cachedResult = await redis.get(key);
+    cachedResult = JSON.parse(cachedResult);
+  } catch {}
 
   if (cachedResult) {
-    return new Response(JSON.stringify(cachedResult));
+    return Response.json(cachedResult, {
+      status: 200,
+      headers: {
+        "X-Fetch-Cache": "HIT",
+      },
+    });
   }
 
-  const response = await nodeFetch(url as URL, init);
+  const response = await fetch(url, init);
   const cachedResponse = response.clone();
 
   if (!response.ok) return response;

@@ -1,6 +1,6 @@
 import type { RedisClientOptions } from "redis";
 
-import _fetch, { setRedisClientConfig } from "../.";
+import { setRedisClientConfig } from "fetch-cache";
 
 type Options = {
   redisConfig?: RedisClientOptions;
@@ -11,18 +11,8 @@ export default function (opts?: Options) {
   return {
     name: "fetch-cache",
     hooks: {
-      "astro:config:setup": ({ injectScript }) => {
+      "astro:config:setup": () => {
         setRedisClientConfig(redisConfig);
-        // @ts-ignore
-        fetch = _fetch;
-        // injectScript(
-        //   "before-hydration",
-        //   `
-        //   import { default as _fetch, setRedisClientConfig } from "fetch-cache";
-        //   setRedisClientConfig(${JSON.stringify(redisConfig)});
-        //   fetch = _fetch;
-        //   `
-        // );
       },
     },
   };

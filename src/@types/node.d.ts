@@ -1,15 +1,8 @@
-import type { RequestInit as NodeRequestInit } from "node-fetch";
+import { fetch } from "fetch-cache";
 
-declare module "node-fetch" {
-  export interface RequestInit extends NodeRequestInit {
-    tags?: string[];
-  }
-}
-
-declare global {
-  namespace NodeJS {
-    export interface RequestInit extends NodeRequestInit {
-      tags?: string[];
-    }
-  }
-}
+// declare global {
+//   declare function api(
+//     url: URL | RequestInfo,
+//     init?: RequestInit & { tags?: string[] }
+//   ): Promise<Response>;
+// }
