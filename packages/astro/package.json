@@ -1,0 +1,24 @@
+{
+  "name": "@fetch-cache/astro",
+  "type": "module",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./dist/src/index.js"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "clean": "tsc --build --clean & rm -rf dist",
+    "format": "prettier --write \"**/*.{ts,mjs,js}\""
+  },
+  "dependencies": {
+    "astro": "^4.9.1",
+    "fetch-cache": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@fetch-cache/eslint": "workspace:*",
+    "@fetch-cache/tsconfig": "workspace:*"
+  },
+  "packageManager": "pnpm@9.1.1"
+}

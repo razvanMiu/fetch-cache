@@ -1,0 +1,12 @@
+{
+  "name": "@fetch-cache/tsconfig",
+  "type": "module",
+  "version": "0.1.0",
+  "exports": {
+    "./base": "./base.json",
+    "./strict": "./strict.json",
+    "./strictest": "./strictest.json",
+    "./library": "./library.json"
+  },
+  "packageManager": "pnpm@9.1.1"
+}

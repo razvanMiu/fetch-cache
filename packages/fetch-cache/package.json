@@ -3,17 +3,14 @@
   "type": "module",
   "version": "0.1.0",
   "exports": {
-    ".": "./src/index.ts",
-    "./constants": "./src/constants.ts",
-    "./astro": "./src/astro/index.ts",
-    "./astro/middleware": "./src/astro/middleware.ts"
+    ".": "./src/index.js",
+    "./constants": "./src/constants.js"
   },
   "scripts": {
-    "build": "turbo build",
-    "dev": "turbo dev",
-    "clean": "turbo clean",
-    "lint": "turbo lint",
-    "format": "turbo format"
+    "build": "tsc --build",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "clean": "tsc --build --clean & rm -rf dist",
+    "format": "prettier --write \"**/*.{ts,mjs,js}\""
   },
   "dependencies": {
     "object-hash": "^3.0.0",

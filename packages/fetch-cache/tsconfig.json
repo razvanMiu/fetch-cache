@@ -1,0 +1,10 @@
+{
+  "extends": "@fetch-cache/tsconfig/library",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "outDir": "./dist",
+    "declarationDir": "./dist"
+  },
+  "include": ["src/**/*.ts", "eslint.config.mjs"]
+}
