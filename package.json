@@ -9,7 +9,6 @@
     "./astro/middleware": "./src/astro/middleware.ts"
   },
   "scripts": {
-    "install": "pnpm install",
     "build": "turbo build",
     "dev": "turbo dev",
     "clean": "make clean & turbo clean",
