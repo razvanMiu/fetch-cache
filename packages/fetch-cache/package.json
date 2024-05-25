@@ -13,13 +13,13 @@
     "format": "prettier --write \"**/*.{ts,mjs,js}\""
   },
   "dependencies": {
-    "object-hash": "^3.0.0",
+    "hash-wasm": "^4.11.0",
     "redis": "^4.6.14"
   },
   "devDependencies": {
-    "typescript": "^5.4.5",
     "@fetch-cache/eslint": "workspace:*",
-    "@fetch-cache/tsconfig": "workspace:*"
+    "@fetch-cache/tsconfig": "workspace:*",
+    "typescript": "^5.4.5"
   },
   "packageManager": "pnpm@9.1.1"
 }

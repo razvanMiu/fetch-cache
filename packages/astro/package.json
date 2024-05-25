@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.1.0",
   "exports": {
-    ".": "./dist/src/index.js"
+    ".": "./src/index.js"
   },
   "scripts": {
     "build": "tsc --build",
