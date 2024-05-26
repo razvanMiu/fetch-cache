@@ -3,7 +3,8 @@
   "type": "module",
   "version": "0.1.0",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./dist/src/index.js",
+    "./server/init": "./dist/src/server/init.js"
   },
   "scripts": {
     "build": "tsc --build",
@@ -13,7 +14,8 @@
   },
   "dependencies": {
     "astro": "^4.9.1",
-    "fetch-cache": "workspace:*"
+    "fetch-cache": "workspace:*",
+    "redis": "^4.6.14"
   },
   "devDependencies": {
     "typescript": "^5.4.5",

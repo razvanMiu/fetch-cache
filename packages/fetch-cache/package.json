@@ -3,8 +3,12 @@
   "type": "module",
   "version": "0.1.0",
   "exports": {
-    ".": "./src/index.js",
-    "./constants": "./src/constants.js"
+    ".": "./dist/src/index.js",
+    "./fetch": "./dist/src/fetch.js",
+    "./config": "./dist/src/config.js",
+    "./cache": "./dist/src/lib/Cache/index.js",
+    "./redis": "./dist/src/lib/Cache/redis.js",
+    "./utils": "./dist/src/lib/Utils/index.js"
   },
   "scripts": {
     "build": "tsc --build",

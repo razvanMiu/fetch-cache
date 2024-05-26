@@ -1,5 +1,7 @@
 import eslint from '@fetch-cache/eslint/base'
 
+console.log('====>', eslint)
+
 export default [
   ...eslint.configs.recommended,
   {

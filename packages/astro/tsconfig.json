@@ -1,10 +1,15 @@
 {
-  "extends": "@fetch-cache/tsconfig/library",
+  "extends": "@fetch-cache/tsconfig/library-strict",
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
     "outDir": "./dist",
-    "declarationDir": "./dist"
+    "declarationDir": "./dist",
+    "noImplicitAny": false,
+    "paths": {
+      "@fetch-cache/astro": ["src"],
+      "@fetch-cache/astro/*": ["src/*"]
+    }
   },
-  "include": ["src/**/*.ts", "eslint.config.mjs"]
+  "include": ["src/**/*.d.ts", "src/**/*.ts", "eslint.config.mjs"]
 }

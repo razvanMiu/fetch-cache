@@ -1,5 +1,12 @@
 import perfectionist from "eslint-plugin-perfectionist";
 
+const packages = [
+  'fetch-cache',
+  '@fetch-cache/astro',
+  '@fetch-cache/eslint',
+  '@fetch-cache/tsconfig',
+]
+
 const config = {
   configs: {
     recommended: [],
@@ -34,7 +41,13 @@ config.configs.recommended.push({
           "unknown",
         ],
         "custom-groups": {
-          value: {},
+          value: {
+            "internal": packages.reduce((acc, pkg) => {
+              acc.push(`${pkg}`)
+              acc.push(`${pkg}/**`)
+              return acc
+            }, [])
+          },
           type: {},
         },
         "newlines-between": "always",

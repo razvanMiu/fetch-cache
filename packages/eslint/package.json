@@ -3,16 +3,16 @@
   "type": "module",
   "version": "0.1.0",
   "exports": {
-    "./base": "./src/base.mjs",
-    "./perfectionist": "./src/perfectionist.mjs"
+    "./base": "./base.mjs",
+    "./perfectionist": "./perfectionist.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.2.0",
     "eslint": "^9.2.0",
-    "eslint-plugin-jsx-a11y": "^6.8.0",
     "eslint-plugin-perfectionist": "^2.10.0",
     "globals": "^15.2.0",
-    "prettier": "^3.2.5"
+    "prettier": "^3.2.5",
+    "typescript-eslint": "^7.10.0"
   },
   "packageManager": "pnpm@9.1.1"
 }

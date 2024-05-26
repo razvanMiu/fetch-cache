@@ -1,18 +1,17 @@
-import type { RedisClientOptions } from 'redis'
+import type { Settings } from 'fetch-cache/config'
 
-import { setRedisClientConfig } from 'fetch-cache'
-
-type Options = {
-  redisConfig?: RedisClientOptions
-}
-
-export default function (opts?: Options) {
-  const { redisConfig } = opts || {}
+export default function (settings?: Settings) {
   return {
     name: 'fetch-cache',
     hooks: {
       'astro:config:setup': () => {
-        setRedisClientConfig(redisConfig)
+        globalThis.fetchCacheConfig = {
+          settings,
+        }
+        // addMiddleware({
+        //   entrypoint: '@fetch-cache/astro/server/init',
+        //   order: 'pre',
+        // })
       },
     },
   }

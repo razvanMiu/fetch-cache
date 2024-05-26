@@ -6,7 +6,8 @@
     "./base": "./base.json",
     "./strict": "./strict.json",
     "./strictest": "./strictest.json",
-    "./library": "./library.json"
+    "./library-strict": "./library-strict.json",
+    "./library-strictest": "./library-strictest.json"
   },
   "packageManager": "pnpm@9.1.1"
 }
