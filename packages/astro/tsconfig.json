@@ -11,5 +11,5 @@
       "@fetch-cache/astro/*": ["src/*"]
     }
   },
-  "include": ["src/**/*.d.ts", "src/**/*.ts", "eslint.config.mjs"]
+  "include": ["src/types/*.d.ts", "src/**/*.ts", "eslint.config.mjs"]
 }

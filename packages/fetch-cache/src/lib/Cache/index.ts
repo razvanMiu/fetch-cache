@@ -1,107 +1,158 @@
-import config from 'fetch-cache/config'
+import type { KeyOfType } from 'fetch-cache/types'
 
-import type { KeyOfType } from '../../types/util'
+import EventEmitter from 'events'
 
-import { MemoryClient, MemoryCache } from './memory'
-import { RedisClient, RedisCache } from './redis'
+import { PClient, SClient } from 'fetch-cache/client'
+import { parseErr, ERROR_MESSAGES, log } from 'fetch-cache/utils'
 
-export type Cache = RedisCache | MemoryCache
-export type Client = RedisClient | MemoryClient
-
-export type MultiCacheType = {
-  redis?: RedisCache
-  memory: MemoryCache
+export type CacheStore = {
+  strings: Map<string, string>
+  hashes: Map<string, Map<string, string>>
 }
 
-let multiCache: MultiCache | undefined
-const caches: Array<keyof MultiCacheType> = ['redis', 'memory']
+export class Cache<P, S> extends EventEmitter {
+  #id: string = 'client'
+  #isReady: boolean = false
+  #pclient: PClient<P>
+  #sclient: SClient<S>
+  #store?: CacheStore
 
-export class MultiCache {
-  #caches: MultiCacheType = {
-    memory: MemoryCache.create(),
+  constructor(id: string) {
+    super()
+    this.#id = id
+    this.#pclient = this.createPClient()
+    this.#sclient = this.createSClient()
+
+    this.pclient.on('error', (e) => {
+      const err = parseErr(e)
+      if (err.code === ERROR_MESSAGES.esockclosed.code) {
+        this.#isReady = false
+      }
+    })
+    this.sclient.on('error', (e) => {
+      const err = parseErr(e)
+      if (err.code === ERROR_MESSAGES.esockclosed.code) {
+        this.#isReady = false
+      }
+    })
   }
-  #activeCacheId: keyof MultiCacheType | undefined
 
-  constructor() {
-    if (config().settings.useRedis) {
-      this.#caches.redis = RedisCache.create()
-    }
-  }
-
-  get activeCacheId(): keyof MultiCacheType | undefined {
-    return this.#activeCacheId
-  }
-
-  get activeCache(): Cache | undefined {
-    if (!this.#activeCacheId) return undefined
-    return this.#caches[this.#activeCacheId]
-  }
-
-  get activeClient(): Client | undefined {
-    if (!this.#activeCacheId) return undefined
-    return this.#caches[this.#activeCacheId]?.client
+  get id(): string {
+    return this.#id
   }
 
   get isReady(): boolean {
-    if (!this.#activeCacheId) return false
-    return this.#caches[this.#activeCacheId]?.client?.isReady || false
+    return this.#isReady
   }
 
-  async connect(): Promise<MultiCache> {
-    for (const id of caches) {
-      const cache = this.#caches[id]
-      const client = cache?.client
-      if (!cache || !client) continue
-      if (client.isReady) {
-        this.#activeCacheId = id
-        break
-      }
-      try {
-        await client.connect()
-        if (this.#activeCacheId) {
-          try {
-            await this.#caches[this.#activeCacheId]?.client?.disconnect()
-          } catch (err: any) {
-            console.error(
-              `Failed to disconnect previous active cache "${this.#activeCacheId}": ${
-                err?.code || err?.message || err
-              }`,
-            )
-          }
-        }
-        this.#activeCacheId = id
-        break
-      } catch (err: any) {
-        console.error(
-          `Failed to connect to ${id}: ${err?.code || err?.message || err}`,
-        )
+  get pclient(): PClient<P> {
+    return this.#pclient
+  }
+
+  get sclient(): SClient<S> {
+    return this.#sclient
+  }
+
+  get store(): CacheStore | undefined {
+    return this.#store
+  }
+
+  static create<P, S>(id: string): Cache<P, S> {
+    return new Cache(id)
+  }
+
+  createPClient<C>(): PClient<C> {
+    return PClient.create(this.#store)
+  }
+
+  createSClient<C>(): SClient<C> {
+    return SClient.create(this.#store)
+  }
+
+  async connect(): Promise<Cache<P, S>> {
+    if (this.#isReady) return this
+    try {
+      await this.#pclient.connect()
+      await this.#sclient.connect()
+      this.#isReady = true
+    } catch (e) {
+      const err = parseErr(e)
+      if (err.code === ERROR_MESSAGES.esockopened.code) {
+        this.#isReady = true
+      } else {
+        await (this.#pclient.isReady && this.#pclient.disconnect())
+        await (this.#sclient.isReady && this.#sclient.disconnect())
+        throw err
       }
     }
     return this
   }
 
-  async disconnect() {
-    if (!this.activeClient || !this.activeClient?.isReady) return
-    await this.activeClient.disconnect()
-    this.#activeCacheId = undefined
+  async disconnect(): Promise<void> {
+    if (!this.#isReady) return
+    this.#isReady = false
+    await this.#pclient.disconnect()
+    await this.#sclient.disconnect()
   }
 
-  async run<K extends KeyOfType<Client, (...args: any[]) => any>>(
+  async quit(): Promise<void> {
+    if (!this.#isReady) return
+    this.#isReady = false
+    await this.#pclient.quit()
+    await this.#sclient.quit()
+  }
+
+  async prun<K extends KeyOfType<PClient<P>, (...args: any[]) => any>>(
     cmd: K,
-    ...args: Parameters<Client[K]>
-  ): Promise<ReturnType<Client[K]> | undefined> {
-    if (!this.activeClient) return
-    const method = this.activeClient[cmd] as (
-      ...args: Parameters<Client[K]>
-    ) => ReturnType<Client[K]>
-    return await method?.apply(this.activeClient, args)
+    ...args: Parameters<PClient<P>[K]>
+  ): Promise<ReturnType<PClient<P>[K]> | undefined> {
+    if (!this.isReady || !this.pclient) return
+    const method = this.pclient[cmd] as (
+      ...args: Parameters<PClient<P>[K]>
+    ) => ReturnType<PClient<P>[K]>
+    try {
+      return await method?.apply(this.pclient, args)
+    } catch (e: any) {
+      const err = parseErr(e)
+      if (err.code === ERROR_MESSAGES.econndisconnecting.code) {
+        try {
+          await this.connect()
+          return await this.prun(cmd, ...args)
+        } catch (err: any) {
+          log.err(err, `failed to reconnect.`)
+          return await this.prun(cmd, ...args)
+        }
+      }
+      log.err(e, `failed to run "${cmd}" on active cache "${this.id}".`)
+    }
+  }
+
+  async srun<K extends KeyOfType<SClient<S>, (...args: any[]) => any>>(
+    cmd: K,
+    ...args: Parameters<SClient<S>[K]>
+  ): Promise<ReturnType<SClient<S>[K]> | undefined> {
+    if (!this.isReady || !this.sclient) return
+    const method = this.sclient[cmd] as (
+      ...args: Parameters<SClient<S>[K]>
+    ) => ReturnType<SClient<S>[K]>
+    try {
+      return await method?.apply(this.sclient, args)
+    } catch (e: any) {
+      const err = parseErr(e)
+      if (err.code === ERROR_MESSAGES.econndisconnecting.code) {
+        try {
+          await this.connect()
+          return await this.srun(cmd, ...args)
+        } catch (err: any) {
+          log.err(err, `failed to reconnect.`)
+          return await this.srun(cmd, ...args)
+        }
+      }
+      log.err(e, `failed to run "${cmd}" on active cache "${this.id}".`)
+    }
   }
 }
 
-export function getMultiCache(): MultiCache {
-  if (!multiCache) {
-    multiCache = new MultiCache()
-  }
-
-  return multiCache
+export function createCache<P, S>(id: string): Cache<P, S> {
+  return Cache.create(id)
 }

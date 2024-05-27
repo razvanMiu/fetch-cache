@@ -1,3 +1,4 @@
+import type { CacheStore } from 'fetch-cache/cache'
 import type { SetOptions } from 'redis'
 
 import { EventEmitter } from 'events'
@@ -23,15 +24,23 @@ export interface Set {
 }
 
 export class Client<C> extends EventEmitter {
+  #id: string
   #isReady: boolean
+  #store?: CacheStore
 
-  constructor() {
+  constructor(id: string, store?: CacheStore) {
     super()
+    this.#id = id
     this.#isReady = false
+    this.#store = store
   }
 
-  static create<C>(): Client<C> {
-    return new Client()
+  static create<C>(store?: CacheStore): Client<C> {
+    return new Client('Client', store)
+  }
+
+  get id(): string {
+    return this.#id
   }
 
   get isReady(): boolean {
@@ -42,11 +51,15 @@ export class Client<C> extends EventEmitter {
     this.#isReady = value
   }
 
+  get store(): CacheStore | undefined {
+    return this.#store
+  }
+
   unimplemented(...args: any[]): void {
     const method = args[0]
     const argsList = args.slice(1)
     console.error(
-      `Method "${method}" is not implemented with args:`,
+      `Method "${method}" is not implemented for ${this.#id} with args:`,
       argsList.map((arg) => [arg, typeof arg]),
     )
   }
@@ -74,22 +87,28 @@ export class Client<C> extends EventEmitter {
       resolve()
     })
   }
+}
 
-  async get(key: string): Promise<string | null> {
+export class PClient<C> extends Client<C> {
+  static override create<C>(store?: CacheStore): PClient<C> {
+    return new PClient('PClient', store)
+  }
+
+  async get(key: Get['key']): Promise<Get['output']> {
     this.unimplemented('get', key)
     return new Promise((resolve) => {
       resolve(null)
     })
   }
 
-  async hGet(key: string, field: string): Promise<string | undefined> {
+  async hGet(key: Get['key'], field: Set['field']): Promise<Get['hOutput']> {
     this.unimplemented('hGet', key, field)
     return new Promise((resolve) => {
       resolve(undefined)
     })
   }
 
-  async hGetAll(key: string): Promise<Record<string, string>> {
+  async hGetAll(key: Get['key']): Promise<Record<string, string>> {
     this.unimplemented('hGetAll', key)
     return new Promise((resolve) => {
       resolve({})
@@ -97,8 +116,8 @@ export class Client<C> extends EventEmitter {
   }
 
   async set(
-    key: string,
-    value: string,
+    key: Set['key'],
+    value: Set['value'],
     options?: Set['options'],
   ): Promise<void> {
     this.unimplemented('set', key, value, options)
@@ -107,28 +126,36 @@ export class Client<C> extends EventEmitter {
     })
   }
 
-  async hSet(key: string, field: string, value: string): Promise<void> {
+  async hSet(
+    key: Set['key'],
+    field: Set['field'],
+    value: Set['value'],
+  ): Promise<void> {
     this.unimplemented('hSet', key, field, value)
     return new Promise((resolve) => {
       resolve()
     })
   }
 
-  async hSetNX(key: string, field: string, value: string): Promise<void> {
+  async hSetNX(
+    key: Set['key'],
+    field: Set['field'],
+    value: Set['value'],
+  ): Promise<void> {
     this.unimplemented('hSetNX', key, field, value)
     return new Promise((resolve) => {
       resolve()
     })
   }
 
-  async del(key: string): Promise<void> {
+  async del(key: Get['key']): Promise<void> {
     this.unimplemented('del', key)
     return new Promise((resolve) => {
       resolve()
     })
   }
 
-  async hDel(key: string, field: string): Promise<void> {
+  async hDel(key: Get['key'], field: Set['field']): Promise<void> {
     this.unimplemented('hDel', key, field)
     return new Promise((resolve) => {
       resolve()
@@ -142,12 +169,32 @@ export class Client<C> extends EventEmitter {
     })
   }
 
+  async publish(channel: string, message: string): Promise<void> {
+    this.unimplemented('publish', channel, message)
+    return new Promise((resolve) => {
+      resolve()
+    })
+  }
+}
+
+export class SClient<C> extends Client<C> {
+  static override create<C>(store?: CacheStore): SClient<C> {
+    return new SClient('SClient', store)
+  }
+
   async subscribe(
     channels: string | Array<string>,
     listener: PubSubListener,
     bufferMode?: boolean,
   ): Promise<void> {
     this.unimplemented('subscribe', channels, listener, bufferMode)
+    return new Promise((resolve) => {
+      resolve()
+    })
+  }
+
+  async unsubscribe(channels: string | Array<string>): Promise<void> {
+    this.unimplemented('unsubscribe', channels)
     return new Promise((resolve) => {
       resolve()
     })

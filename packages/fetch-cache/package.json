@@ -6,10 +6,15 @@
     ".": "./dist/src/index.js",
     "./fetch": "./dist/src/fetch.js",
     "./config": "./dist/src/config.js",
+    "./utils": "./dist/src/lib/Utils/index.js",
     "./cache": "./dist/src/lib/Cache/index.js",
-    "./redis": "./dist/src/lib/Cache/redis.js",
-    "./utils": "./dist/src/lib/Utils/index.js"
+    "./client": "./dist/src/lib/Client/index.js",
+    "./cache/*": "./dist/src/lib/Cache/*.js",
+    "./client/*": "./dist/src/lib/Client/*.js"
   },
+  "files": [
+    "./src/types/global.d.ts"
+  ],
   "scripts": {
     "build": "tsc --build",
     "dev": "tsc --watch --preserveWatchOutput",
@@ -18,6 +23,7 @@
   },
   "dependencies": {
     "hash-wasm": "^4.11.0",
+    "node-fetch": "^3.3.2",
     "redis": "^4.6.14"
   },
   "devDependencies": {

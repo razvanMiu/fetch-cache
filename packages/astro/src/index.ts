@@ -1,5 +1,7 @@
 import type { Settings } from 'fetch-cache/config'
 
+import fetch from 'fetch-cache'
+
 export default function (settings?: Settings) {
   return {
     name: 'fetch-cache',
@@ -8,10 +10,10 @@ export default function (settings?: Settings) {
         globalThis.fetchCacheConfig = {
           settings,
         }
-        // addMiddleware({
-        //   entrypoint: '@fetch-cache/astro/server/init',
-        //   order: 'pre',
-        // })
+        const _fetch = globalThis.fetch
+        globalThis.fetch = async function (...args: Parameters<typeof _fetch>) {
+          return fetch.apply(this, [...args, _fetch])
+        }
       },
     },
   }

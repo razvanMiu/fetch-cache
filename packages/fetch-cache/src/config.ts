@@ -5,7 +5,6 @@ let config: Config | undefined
 export type Settings = {
   debug?: boolean
   useRedis?: boolean
-  useInMemory?: boolean
   redis?: RedisClientOptions
   inMemory?: null
 }
@@ -14,7 +13,6 @@ class Config {
   #initialized: boolean = false
   #settings: Settings = {
     useRedis: false,
-    useInMemory: true,
     debug: false,
   }
 

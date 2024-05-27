@@ -9,9 +9,10 @@
       "fetch-cache": ["src"],
       "fetch-cache/config": ["src/lib/Config"],
       "fetch-cache/cache": ["src/lib/Cache"],
-      "fetch-cache/redis": ["src/lib/Cache/redis"],
-      "fetch-cache/utils": ["src/lib/Utils"]
+      "fetch-cache/client": ["src/lib/Client"],
+      "fetch-cache/utils": ["src/lib/Utils"],
+      "fetch-cache/types": ["src/types"]
     }
   },
-  "include": ["src/**/*.ts", "eslint.config.mjs"]
+  "include": ["src/**/*.ts", "src/types/*.d.ts", "eslint.config.mjs"]
 }

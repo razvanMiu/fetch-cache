@@ -1,32 +1,7 @@
-import { Cache } from './cache'
-import { Client } from './client'
+import { Cache } from 'fetch-cache/cache'
+import { MemoryPClient, MemorySClient } from 'fetch-cache/client/memory'
 
-export class MemoryClient extends Client<MemoryClient> {
-  static override create(): MemoryClient {
-    return new MemoryClient()
-  }
-
-  override unimplemented(...args: any[]): void {
-    const method = args[0]
-    const argsList = args.slice(1)
-    console.error(
-      `Method "${method}" is not implemented for memory cache client with args:`,
-      argsList.map((arg) => [arg, typeof arg]),
-    )
-  }
-
-  override async connect(): Promise<Client<MemoryClient>> {
-    this.isReady = true
-    return new Promise((resolve) => resolve(this))
-  }
-
-  override async disconnect(): Promise<void> {
-    this.isReady = false
-    return new Promise((resolve) => resolve())
-  }
-}
-
-export class MemoryCache extends Cache<MemoryClient> {
+export class MemoryCache extends Cache<MemoryPClient, MemorySClient> {
   constructor() {
     super('memory')
   }
@@ -35,8 +10,18 @@ export class MemoryCache extends Cache<MemoryClient> {
     return new MemoryCache()
   }
 
-  override createClient(): MemoryClient {
-    return MemoryClient.create()
+  override createPClient(): MemoryPClient {
+    return MemoryPClient.create({
+      strings: new Map<string, string>(),
+      hashes: new Map<string, Map<string, string>>(),
+    })
+  }
+
+  override createSClient(): MemorySClient {
+    return MemorySClient.create({
+      strings: new Map<string, string>(),
+      hashes: new Map<string, Map<string, string>>(),
+    })
   }
 }
 
